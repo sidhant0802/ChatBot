@@ -77,9 +77,7 @@ const BOT_AV = `<div class="av-bot">
 </div>`;
 
 function formatText(text) {
-  // Bold: **text**
   text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // Code inline: `code`
   text = text.replace(/`([^`]+)`/g, '<code style="background:rgba(37,99,235,0.08);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:.8rem;">$1</code>');
 
   let out = '';
@@ -169,7 +167,6 @@ async function sendMsg() {
   showTyping();
 
   try {
-    // ── This hits YOUR server.js POST /chat endpoint
     // ── server.js calls sendMessage() from llm.js
     // ── llm.js calls OpenRouter and returns the reply
     const res = await fetch(SERVER_URL, {
