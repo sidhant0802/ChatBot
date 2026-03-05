@@ -663,7 +663,7 @@ async function sendMsg() {
     appendBot(reply);
 
     // Mark server as confirmed ok
-    if (!state.serverOk) setServerOk(true);
+    // if (!state.serverOk) setServerOk(true);
 
   } catch (err) {
     hideTyping();
@@ -671,7 +671,7 @@ async function sendMsg() {
     // Friendly error messages
     if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
 appendBot(`⚠️ Server connection error. Please try again.`);
-      setServerOk(false);
+    //   setServerOk(false);
     } else {
       appendBot(`⚠️ ${err.message}`);
     }
