@@ -127,6 +127,12 @@ function hideTyping() {
   if (r) r.remove();
 }
 
+// const SpeechRecognition =
+//   window.SpeechRecognition || window.webkitSpeechRecognition;
+
+// let recognition = null;
+// let isRecording = false;
+
 async function sendMsg() {
   const text = msgEl.value.trim();
   if (!text || state.loading) return;
@@ -165,9 +171,6 @@ async function sendMsg() {
   }
 }
 
-/* =========================
-   VOICE ASSISTANT
-========================= */
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -215,6 +218,16 @@ if (SpeechRecognition) {
     msgEl.dispatchEvent(new Event("input"));
 
   };
+
+
+  
+  // recognition.onstart = () => {
+  //   isRecording = true;
+  //   finalTranscript = '';
+  //   document.getElementById('mic-btn').classList.add('recording');
+  //   document.getElementById('voice-bar').classList.add('active');
+  // };
+
 
   recognition.onend = () => {
 
