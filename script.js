@@ -1,12 +1,12 @@
 
-// this calls your server which then calls llm.js
+// // this calls your server which then calls llm.js
 const SERVER_URL = "/api/chat";
 
 
-const state = { loading: false, serverOk: false };
+// const state = { loading: false, serverOk: false };
 
 
-document.getElementById('init-ts').textContent = getTime();
+// document.getElementById('init-ts').textContent = getTime();
 
 
 // async function checkServer() {
@@ -33,6 +33,14 @@ document.getElementById('init-ts').textContent = getTime();
 // //   document.getElementById('live-dot-el') // leave live dot always green visually
 // }
 
+
+// this calls your server which then calls llm.js
+// const SERVER_URL = "/api/chat";
+
+const state = { loading: false };
+
+document.getElementById('init-ts').textContent = getTime();
+
 const msgEl = document.getElementById('msg');
 
 msgEl.addEventListener('input', () => {
@@ -41,7 +49,10 @@ msgEl.addEventListener('input', () => {
 });
 
 msgEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMsg();
+  }
 });
 
 function useChip(el) {
@@ -76,36 +87,13 @@ const BOT_AV = `<div class="av-bot">
   </svg>
 </div>`;
 
-function formatText(text) {
-  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/`([^`]+)`/g, '<code style="background:rgba(37,99,235,0.08);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:.8rem;">$1</code>');
-
-  let out = '';
-  const lines = text.split('\n');
-  let inList = false;
-
-  lines.forEach(line => {
-    const t = line.trim();
-    if (t.match(/^[-•*]\s+/) || t.match(/^\d+\.\s+/)) {
-      if (!inList) { out += '<ul>'; inList = true; }
-      out += `<li>${t.replace(/^[-•*]\s+|^\d+\.\s+/, '')}</li>`;
-    } else {
-      if (inList) { out += '</ul>'; inList = false; }
-      if (t) out += `<p style="margin-bottom:4px">${t}</p>`;
-    }
-  });
-
-  if (inList) out += '</ul>';
-  return out || `<p>${text}</p>`;
-}
-
-function appendBot(text, isNew = true) {
+function appendBot(text) {
   const c = document.getElementById('msgs');
   const row = document.createElement('div');
   row.className = 'row bot';
   row.innerHTML = `${BOT_AV}
     <div class="bubble-wrap">
-      <div class="bubble${isNew ? ' new' : ''}">${formatText(text)}</div>
+      <div class="bubble">${text}</div>
       <div class="ts">${getTime()}</div>
     </div>`;
   c.appendChild(row);
@@ -117,10 +105,9 @@ function appendUser(text) {
   const row = document.createElement('div');
   row.className = 'row user';
   row.innerHTML = `<div class="bubble-wrap">
-      <div class="bubble">${text.replace(/\n/g, '<br>')}</div>
+      <div class="bubble">${text}</div>
       <div class="ts">${getTime()}</div>
-    </div>
-    `;
+    </div>`;
   c.appendChild(row);
   scrollBottom();
 }
@@ -128,30 +115,16 @@ function appendUser(text) {
 function showTyping() {
   const c = document.getElementById('msgs');
   const row = document.createElement('div');
-  row.className = 'typing-row'; row.id = 'typing-row';
+  row.className = 'typing-row';
+  row.id = 'typing-row';
   row.innerHTML = `${BOT_AV}
     <div class="typing-bub"><span></span><span></span><span></span></div>`;
   c.appendChild(row);
-  scrollBottom();
 }
 
 function hideTyping() {
   const r = document.getElementById('typing-row');
   if (r) r.remove();
-}
-
-
-function clearChat() {
-  const c = document.getElementById('msgs');
-  c.innerHTML = `<div class="date-sep">Today</div>
-    <div class="row bot">
-      ${BOT_AV}
-      <div class="bubble-wrap">
-        <div class="bubble">Hello! I'm <strong>DeepChat</strong>, your AI assistant. How can I help you today? 👋</div>
-        <div class="ts">${getTime()}</div>
-      </div>
-    </div>`;
-  showToast('Conversation cleared ✓');
 }
 
 async function sendMsg() {
@@ -160,116 +133,139 @@ async function sendMsg() {
 
   msgEl.value = '';
   msgEl.style.height = 'auto';
-  document.getElementById('send-btn').disabled = true;
+
   state.loading = true;
 
   appendUser(text);
   showTyping();
 
   try {
-    // ── server.js calls sendMessage() from llm.js
-    // ── llm.js calls OpenRouter and returns the reply
+
     const res = await fetch(SERVER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text })
     });
 
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e?.error || `Server error ${res.status}`);
-    }
-
     const data = await res.json();
-    // server.js returns { reply: "..." }
-    const reply = data.reply;
 
     hideTyping();
-    appendBot(reply);
-
-    // Mark server as confirmed ok
-    // if (!state.serverOk) setServerOk(true);
+    appendBot(data.reply);
 
   } catch (err) {
-    hideTyping();
 
-    // Friendly error messages
-    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-appendBot(`⚠️ Server connection error. Please try again.`);
-    //   setServerOk(false);
-    } else {
-      appendBot(`⚠️ ${err.message}`);
-    }
+    hideTyping();
+    appendBot("⚠️ Server connection error.");
+
   } finally {
+
     state.loading = false;
-    document.getElementById('send-btn').disabled = false;
     msgEl.focus();
+
   }
 }
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* =========================
+   VOICE ASSISTANT
+========================= */
+
+const SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
 let recognition = null;
 let isRecording = false;
 
 if (SpeechRecognition) {
+
   recognition = new SpeechRecognition();
+
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.lang = 'en-US';
+  recognition.lang = "en-US";
 
-  let finalTranscript = '';
+  let finalTranscript = "";
 
   recognition.onstart = () => {
+
     isRecording = true;
-    finalTranscript = '';
-    document.getElementById('mic-btn').classList.add('recording');
-    document.getElementById('voice-bar').classList.add('active');
+    finalTranscript = "";
+
+    document.getElementById("mic-btn").classList.add("recording");
+    document.getElementById("voice-bar").classList.add("active");
+
   };
 
-  recognition.onresult = (e) => {
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i].transcript;
-      if (e.results[i].isFinal) { finalTranscript += t + ' '; }
-      else { interim += t; }
+  recognition.onresult = (event) => {
+
+    let interim = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+
+      const text = event.results[i][0].transcript;
+
+      if (event.results[i].isFinal) {
+        finalTranscript += text + " ";
+      } else {
+        interim += text;
+      }
+
     }
+
     msgEl.value = (finalTranscript + interim).trim();
-    msgEl.dispatchEvent(new Event('input'));
+    msgEl.dispatchEvent(new Event("input"));
+
   };
 
   recognition.onend = () => {
+
     isRecording = false;
-    document.getElementById('mic-btn').classList.remove('recording');
-    document.getElementById('voice-bar').classList.remove('active');
+
+    document.getElementById("mic-btn").classList.remove("recording");
+    document.getElementById("voice-bar").classList.remove("active");
+
     if (msgEl.value.trim()) {
-      msgEl.focus();
-      showToast('Voice captured — press Send or edit ✓');
+      showToast("Voice captured — press Send ✓");
     }
+
   };
 
   recognition.onerror = (e) => {
+
     isRecording = false;
-    document.getElementById('mic-btn').classList.remove('recording');
-    document.getElementById('voice-bar').classList.remove('active');
-    const msgs = {
-      'not-allowed': 'Mic permission denied — allow it in browser settings.',
-      'no-speech': 'No speech detected. Try again.',
-      'network': 'Network error during voice input.'
-    };
-    showToast(msgs[e.error] || `Voice error: ${e.error}`);
+
+    document.getElementById("mic-btn").classList.remove("recording");
+    document.getElementById("voice-bar").classList.remove("active");
+
+    showToast("Voice error: " + e.error);
+
   };
+
 } else {
-  document.getElementById('mic-btn').title = 'Voice input needs Chrome or Edge';
-  document.getElementById('mic-btn').style.opacity = '.35';
-  document.getElementById('mic-btn').style.cursor = 'not-allowed';
+
+  document.getElementById("mic-btn").style.opacity = ".4";
+  document.getElementById("mic-btn").title = "Voice not supported";
+
 }
 
 function toggleMic() {
-  if (!recognition) { showToast('Use Chrome or Edge for voice input 🎤'); return; }
-  if (isRecording) { stopMic(); }
-  else { msgEl.value = ''; recognition.start(); }
+
+  if (!recognition) {
+    showToast("Use Chrome for voice input 🎤");
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+  } else {
+    recognition.start();
+  }
+
 }
 
 function stopMic() {
-  if (recognition && isRecording) recognition.stop();
+
+  if (recognition && isRecording) {
+    recognition.stop();
+  }
+
 }
